@@ -3,6 +3,6 @@
 build/
 dist/
 __pycache__/
-token.*
-login.*
-password.*
+*token.*
+*login.*
+*password.*
