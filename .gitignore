@@ -3,6 +3,6 @@
 build/
 dist/
 __pycache__/
-token.txt
-login.txt
-password.txt
+token.*
+login.*
+password.*
