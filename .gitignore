@@ -6,3 +6,5 @@ __pycache__/
 *token.*
 *login.*
 *password.*
+instrument_cache.json
+portfolio_history.csv

@@ -1,13 +1,24 @@
-import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from t_tech.invest import Client
-from t_tech.invest.schemas import OperationState
-from t_tech.invest.schemas import OperationType
+from t_tech.invest.schemas import InstrumentIdType
 from _token import TOKEN
+import pandas as pd
+from config import *
+from pathlib import Path
+import json
+from decimal import Decimal
+
 
 def main():
-    with Client(TOKEN) as client:
+    if Path(TABLE_NAME).exists():
+        df = pd.read_csv(TABLE_NAME)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+    else:
+        df = pd.DataFrame(
+            columns=["datetime", "figi", "name", "quantity", "price", "value", "dividends"]
+        )
 
+    with Client(TOKEN) as client:
         # 1. Получаем счета
         accounts = client.users.get_accounts().accounts
         if not accounts:
@@ -18,29 +29,61 @@ def main():
         account_id = account.id
         print(f"Используем счёт: {account.name} ({account_id})")
 
-        # 2. Период (пример: последний год)
         now = datetime.now(timezone.utc)
-        year_ago = now - timedelta(days=365)
+        new_rows = []
 
-        # 3. Получаем операции
-        operations = client.operations.get_operations(
-            account_id=account_id,
-            from_=year_ago,
-            to=now,
-            state=OperationState.OPERATION_STATE_EXECUTED,
-        ).operations
+        if Path(INSTRUMENT_CACHE_NAME).exists():
+            instrument_cache = json.loads(Path(INSTRUMENT_CACHE_NAME).read_text(encoding="utf-8"))
+        else:
+            instrument_cache = {}
 
-        print(f"Операций: {len(operations)}")
+        # 3. Текущие акции в портфеле
+        portfolio = client.operations.get_portfolio(account_id=account_id)
+        for pos in portfolio.positions:
+            if pos.instrument_type != "share":
+                continue
+            qty = pos.quantity.units
+            curr_price = (
+                Decimal(pos.current_price.units) +
+                Decimal(pos.current_price.nano) / Decimal(1000000000)
+            ).quantize(Decimal("0.01"))
 
-        # 4. Печатаем несколько операций
-        for op in operations[:10]:
+            uid = pos.instrument_uid
+            if uid not in instrument_cache:
+                uid_name = client.instruments.get_instrument_by(
+                    id_type=InstrumentIdType.INSTRUMENT_ID_TYPE_UID,
+                    id=pos.instrument_uid,
+                )
+                instrument_cache[uid] = uid_name.instrument.name
+
+            new_rows.append({
+                "datetime": now,
+                "figi": pos.figi,
+                "name": instrument_cache[uid],
+                "quantity": qty,
+                "price": curr_price,
+                "value": (Decimal(qty) * curr_price).quantize(Decimal("0.01")),
+                "dividends": 0.0
+            })
             print(
-                op.date,
-                OperationType(op.operation_type).name,
-                op.payment.units,
-                op.payment.currency,
-                op.figi,
+                pos.figi,
+                instrument_cache[uid],
+                qty,
+                curr_price
             )
+        if new_rows:
+            new_rows.append({})
+            df_new = pd.DataFrame(new_rows)
+            if df.empty:
+                df = df_new
+            else:
+                df = pd.concat([df, df_new], ignore_index=True)
+    df.to_csv(TABLE_NAME, index=False)
+
+    Path(INSTRUMENT_CACHE_NAME).write_text(
+        json.dumps(instrument_cache, indent=4, ensure_ascii=False),
+        encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":
