@@ -7,9 +7,22 @@ from config import *
 from pathlib import Path
 import json
 from decimal import Decimal
+import sys
+import logging
+
+
+BASE_DIR = Path(__file__).parent
+LOG_FILE = BASE_DIR / "run.log"
+
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
 
 
 def main():
+    logging.info("Script started")
     if Path(TABLE_NAME).exists():
         df = pd.read_csv(TABLE_NAME)
         df["datetime"] = pd.to_datetime(df["datetime"])
@@ -23,12 +36,13 @@ def main():
         accounts = client.users.get_accounts().accounts
         if not accounts:
             print("Нет счетов")
+            logging.info("No accounts found")
             return
 
         account = accounts[0]
         account_id = account.id
         print(f"Используем счёт: {account.name} ({account_id})")
-
+        logging.info(f"Found account: {account.name} ({account_id})")
         now = datetime.now(timezone.utc)
         new_rows = []
 
@@ -78,12 +92,23 @@ def main():
                 df = df_new
             else:
                 df = pd.concat([df, df_new], ignore_index=True)
-    df.to_csv(TABLE_NAME, index=False)
 
-    Path(INSTRUMENT_CACHE_NAME).write_text(
-        json.dumps(instrument_cache, indent=4, ensure_ascii=False),
-        encoding="utf-8"
-    )
+    try:
+        df.to_csv(TABLE_NAME, index=False)
+    except Exception:
+        logging.error(f"ERROR: Failed to save {TABLE_NAME}", exc_info=True)
+        sys.exit(1)
+    logging.info(f"{TABLE_NAME} saved successfully")
+
+    try:
+        Path(INSTRUMENT_CACHE_NAME).write_text(
+            json.dumps(instrument_cache, indent=4, ensure_ascii=False),
+            encoding="utf-8"
+        )
+    except Exception:
+        logging.error(f"ERROR: failed to save instrument cache", exc_info=True)
+        sys.exit(1)
+    logging.info(f"Instrument cache saved successfully")
 
 
 if __name__ == "__main__":
