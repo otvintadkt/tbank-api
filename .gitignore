@@ -8,3 +8,4 @@ __pycache__/
 *password.*
 instrument_cache.json
 portfolio_history.csv
+*.log

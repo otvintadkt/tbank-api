@@ -18,6 +18,7 @@ logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
+    encoding="utf-8"
 )
 
 
@@ -86,7 +87,28 @@ def main():
                 curr_price
             )
         if new_rows:
-            new_rows.append({})
+            total_value = sum(row["value"] for row in new_rows)
+            total_qty = sum(row["quantity"] for row in new_rows)
+            total_dividends = sum(row["dividends"] for row in new_rows)
+
+            new_rows.append({
+                "datetime": now,
+                "figi": None,
+                "name": "Сумма",
+                "quantity": total_qty,
+                "price": None,
+                "value": total_value,
+                "dividends": total_dividends
+            })
+            new_rows.append({
+                "datetime": None,
+                "figi": None,
+                "name": None,
+                "quantity": None,
+                "price": None,
+                "value": None,
+                "dividends": None
+            })
             df_new = pd.DataFrame(new_rows)
             if df.empty:
                 df = df_new
