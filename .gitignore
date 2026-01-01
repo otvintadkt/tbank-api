@@ -7,5 +7,5 @@ __pycache__/
 *login.*
 *password.*
 instrument_cache.json
-portfolio_history.csv
+*portfolio_history.csv
 *.log

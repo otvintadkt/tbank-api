@@ -8,7 +8,12 @@ from pathlib import Path
 import json
 from decimal import Decimal
 import sys
+from os import getenv
 import logging
+
+print(getenv("PYCHARM"))
+print(getenv("PYCHARM_HOSTED"))
+autorun = "--autorun" in sys.argv
 
 BASE_DIR = Path(__file__).parent
 LOG_FILE = BASE_DIR / "run.log"
@@ -114,10 +119,11 @@ def main():
             else:
                 df = pd.concat([df, df_new], ignore_index=True)
             logging.info("Saved new dataframe successfully")
-            logging.info("Visualising dataframe")
-            logging.info("Visualised dataframe successfully")
     try:
-        df.to_csv(TABLE_NAME, index=False)
+        if autorun:
+            df.to_csv(AUTORUN_TABLE_NAME, index=False)
+        else:
+            df.to_csv(TABLE_NAME, index=False)
     except Exception:
         logging.error(f"ERROR: Failed to save {TABLE_NAME}", exc_info=True)
         sys.exit(1)
