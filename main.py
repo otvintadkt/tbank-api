@@ -10,7 +10,6 @@ from decimal import Decimal
 import sys
 import logging
 
-
 BASE_DIR = Path(__file__).parent
 LOG_FILE = BASE_DIR / "run.log"
 
@@ -114,7 +113,9 @@ def main():
                 df = df_new
             else:
                 df = pd.concat([df, df_new], ignore_index=True)
-
+            logging.info("Saved new dataframe successfully")
+            logging.info("Visualising dataframe")
+            logging.info("Visualised dataframe successfully")
     try:
         df.to_csv(TABLE_NAME, index=False)
     except Exception:
