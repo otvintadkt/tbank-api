@@ -12,7 +12,11 @@ def visualise_value(dataframe : pd.DataFrame):
     plt.show()
 
 def main():
-    df = pd.read_csv("portfolio_history.csv")
+    try:
+        df = pd.read_csv("portfolio_history.csv")
+    except Exception as e:
+        print(f"Couldn't find the file: {e}")
+        return
     visualise_value(df)
 
 if __name__ == "__main__":

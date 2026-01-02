@@ -4,29 +4,15 @@ from t_tech.invest.schemas import InstrumentIdType
 from _token import TOKEN
 import pandas as pd
 from config import *
-from pathlib import Path
 import json
 from decimal import Decimal
 import sys
-from os import getenv
-import logging
-
-print(getenv("PYCHARM"))
-print(getenv("PYCHARM_HOSTED"))
-autorun = "--autorun" in sys.argv
-
-BASE_DIR = Path(__file__).parent
-LOG_FILE = BASE_DIR / "run.log"
-
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    encoding="utf-8"
-)
+from _logging import *
 
 
+configure_logging("get_stocks.log")
 def main():
+    autorun = "--autorun" in sys.argv
     logging.info("Script started")
     if Path(TABLE_NAME).exists():
         df = pd.read_csv(TABLE_NAME)
@@ -62,7 +48,7 @@ def main():
             if pos.instrument_type != "share":
                 continue
             qty = pos.quantity.units
-            curr_price = (
+            cur_price = (
                 Decimal(pos.current_price.units) +
                 Decimal(pos.current_price.nano) / Decimal(1000000000)
             ).quantize(Decimal("0.01"))
@@ -80,15 +66,15 @@ def main():
                 "figi": pos.figi,
                 "name": instrument_cache[uid],
                 "quantity": qty,
-                "price": curr_price,
-                "value": (Decimal(qty) * curr_price).quantize(Decimal("0.01")),
+                "price": cur_price,
+                "value": (Decimal(qty) * cur_price).quantize(Decimal("0.01")),
                 "dividends": 0.0
             })
             print(
                 pos.figi,
                 instrument_cache[uid],
                 qty,
-                curr_price
+                cur_price
             )
         if new_rows:
             total_value = sum(row["value"] for row in new_rows)
